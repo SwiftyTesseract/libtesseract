@@ -1,3 +1,9 @@
+# Beware, this Makefile is a hot-mess hodgpodge that has accumulated cruft
+# and changes and additions over the last couple of years and
+# probably makes zero sense at first (and probably second and third) glance.
+# You will see references to "fat" libaries that haven't been renamed after
+# this was adapted to only build single architecture binaries.
+# Many dragons lie beyond this comment block
 PNG_VERSION     := 1.6.36
 PNG_NAME        := libpng-$(PNG_VERSION)
 JPEG_SRC_NAME   := jpegsrc.v9c
@@ -119,8 +125,6 @@ libjpegmakefile = $(foreach folder, $(libjpegfolders), $(addprefix $(folder), Ma
 libtiffmakefile = $(foreach folder, $(libtifffolders), $(addprefix $(folder), Makefile) )
 libleptmakefile = $(foreach folder, $(libleptfolders), $(addprefix $(folder), Makefile) )
 libtessmakefile = $(foreach folder, $(libtessfolders), $(addprefix $(folder), Makefile) )
-
-# NEED TO LOOK AT WHERE THIS IS USED imagesmakefile  = $(addprefix $(SOURCES)/, Makefile)
 
 libleptfat = $(LIB_FAT_DIR)/$(libleptfiles)
 libtessfat = $(LIB_FAT_DIR)/$(libtessfiles)

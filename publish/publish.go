@@ -65,7 +65,7 @@ type publishBody struct {
 
 func publish(version string, bintrayKey string) {
 	// Specify -1 to wait until publishing has completed
-	data, _ := json.Marshal(publishBody{-1}
+	data, _ := json.Marshal(publishBody{-1})
 	publishURL := fmt.Sprintf("https://api.bintray.com/content/steven0351/tesseract/tesseract/%s/publish", version)
 
 	req, _ := http.NewRequest(http.MethodPost, publishURL, bytes.NewBuffer(data))

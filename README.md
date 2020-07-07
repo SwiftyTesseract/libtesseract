@@ -1,5 +1,5 @@
 # libtesseract
-![Swift Tools Version Badge](https://img.shields.io/badge/swift%20tools%20version-5.3-blue.svg)![ios platform badge](https://img.shields.io/badge/iOS-11.0%20%2B-orange.svg) ![catalyst platform badge](https://img.shields.io/badge/macOS%20%28catalyst%29-10.15%20%2B-purple.svg) ![macOS platform badge](https://img.shields.io/badge/macOS-10.13%20%2B-red.svg) ![Deliver](https://github.com/SwiftyTesseract/libtesseract/workflows/Deliver/badge.svg)
+![Swift Tools Version Badge](https://img.shields.io/badge/swift%20tools%20version-5.3-blue.svg) ![ios platform badge](https://img.shields.io/badge/iOS-11.0%20%2B-orange.svg) ![catalyst platform badge](https://img.shields.io/badge/macOS%20%28catalyst%29-10.15%20%2B-purple.svg) ![macOS platform badge](https://img.shields.io/badge/macOS-10.13%20%2B-red.svg) ![Deliver](https://github.com/SwiftyTesseract/libtesseract/workflows/Deliver/badge.svg)
 
 This repo contains build scripts to compile [Tesseract](https://github.com/tesseract-ocr/tesseract) and it's dependencies for Apple platforms to be distributed as a Swift package. It's primary goal is to aide in migrating [SwiftyTesseract](https://github.com/SwiftyTesseract/SwiftyTesseract) to be consumable as a Swift Package Manager dependency. If you're looking for looking for a quick way to get started with using Tesseract in your Apple platform application without the rough edges of memory management and dealing with C interop, then you should start with SwiftyTesseract.
 
@@ -46,6 +46,11 @@ This can be done in an xcode-based project by adding these in Build Phases -> Li
 ![screenshot of xcode linking libc++ and libz](link_libraries.png)
 
 See SwiftyTesseract's [Additonal Configuration](https://github.com/SwiftyTesseract/SwiftyTesseract#additional-configuration) notes on considerations for including language training data files.
+
+## Build dependencies
+If you want to build libtesseract from source, you need `automake` and `pkg-config` installed on your machine. These can be installed via homebrew:
+
+`brew install automake pkg-config`
 
 ## Attributions
 libtesseract disributes the following dependencies in binary form:

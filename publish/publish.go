@@ -37,7 +37,8 @@ func main() {
 
 	if !*shouldPublish {
 		zippedPath := fmt.Sprintf("libtesseract-%s.xcframework.zip", *version)
-		shellOut("zip", "-r", zippedPath, *binaryPath)
+		shellOut("mv", *binaryPath, ".")
+		shellOut("zip", "-r", zippedPath, "libtesseract.xcframework")
 
 		createBintrayVersion(*version, *bintrayKey)
 		uploadArtifact(zippedPath, *version, *bintrayKey)

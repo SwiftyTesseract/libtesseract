@@ -2,15 +2,23 @@ name: Build
 
 on:
   push:
+    branches-ignore:
+      # We ignore on push to release because the Deliver workflow builds and
+      # uploads, while this just builds.
+      - 'release/**'
+  pull_request:
     branches:
-      - main
-      - develop
+      # Only trigger on pull request to develop, since this is the primary branch of
+      # integration for both internal and external contributions.
+      - 'develop'
 
 jobs:
   build:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v1
+    - name: Install automake and pkg-config
+      run: brew install automake pkg-config
     - name: Switch to Xcode 12
       run: sudo xcode-select --switch /Applications/Xcode_12_beta.app/Contents/Developer
     - name: Build libtesseract

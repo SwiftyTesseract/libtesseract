@@ -9,9 +9,9 @@ assignees: ''
 <!-- Thanks for contributing to libtesseract! Before you submit your Bug Report, please make sure to check the following boxes by putting an x in the [ ] (don't: [x ], [ x], do: [x]) -->
 
 ### Checklist
-- [] I've read the [Readme](https://github.com/SwiftyTesseract/SwiftyTesseract/blob/master/README.md)
-- [] I've read the [Contribution Guidelines](https://github.com/SwiftyTesseract/SwiftyTesseract/blob/master/CONTRIBUTING.md)
-- [] I've read the [Code of Conduct](https://github.com/SwiftyTesseract/SwiftyTesseract/blob/master/CODE_OF_CONDUCT.md).
+- [] I've read the [Readme](https://github.com/SwiftyTesseract/libtesseract/blob/main/README.md)
+- [] I've read the [Contribution Guidelines](https://github.com/SwiftyTesseract/libtesseract/blob/main/CONTRIBUTING.md)
+- [] I've read the [Code of Conduct](https://github.com/SwiftyTesseract/libtesseract/blob/main/CODE_OF_CONDUCT.md).
 
 **Describe the bug**
 <!-- A clear and concise description of what the bug is. -->

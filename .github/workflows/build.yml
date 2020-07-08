@@ -1,0 +1,17 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Switch to Xcode 12
+      run: sudo xcode-select --switch /Applications/Xcode_12_beta.app/Contents/Developer
+    - name: Build libtesseract
+      run: sh build_all.sh

@@ -1,0 +1,31 @@
+name: Deliver
+
+on:
+  push:
+    branches:
+      - 'release/**'
+
+jobs:
+  deliver:
+    runs-on: macOS-latest
+    if: "!contains(github.event.head_commit.message, 'Do not upload')"
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install automake and pkg-config
+        run: brew install automake pkg-config
+      - name: Switch to Xcode 12
+        run: sudo xcode-select --switch /Applications/Xcode_12_beta.app/Contents/Developer
+      - name: Build libtesseract
+        run: sh build_all.sh
+      - name: Assign Tag Number to RELEASE_VERSION environment variable
+        run: echo ::set-env name=RELEASE_VERSION::${GITHUB_REF#refs/*/*/}
+      - name: Push artifact to Bintray
+        run: go run publish.go -path ../build/libtesseract.xcframework -version $RELEASE_VERSION -bintray-key ${{ secrets.BINTRAY_KEY }}
+        working-directory: publish
+      - name: Commit Package.swift update
+        uses: EndBug/add-and-commit@v4
+        with:
+          add: 'Package.swift'
+          message: 'Auto-updating Package.swift'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

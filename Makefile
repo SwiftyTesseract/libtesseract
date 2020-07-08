@@ -44,62 +44,40 @@ TARGET_CXX="$(XCODE_DEVELOPER_PATH_BIN)/g++"
 TARGET_CXX_FOR_BUILD="$(XCODE_DEVELOPER_PATH_BIN)/g++"
 TARGET_CC="$(XCODE_DEVELOPER_PATH_BIN)/gcc"
 
-index = $(words $(shell a="$(2)";echo $${a/$(1)*/$(1)} ))
-swap  = $(word $(call index,$(1),$(2)),$(3))
-
 # platform specific config
 ifeq ($(platform), ios)
 	PLATFORM_PREFIX=ios
-	SDK_IPHONEOS_PATH=$(shell xcrun --sdk iphoneos --show-sdk-path)
-	IOS_DEPLOY_TGT="11.0"
-
-	sdks = $(SDK_IPHONEOS_PATH)
-	platform_version_mins = iphoneos-version-min=$(IOS_DEPLOY_TGT)
-	archs_all = arm64
-	arch_names_all = arm-apple-darwin64
-	host = $(arch_names_all)
-	arch_names = $(foreach arch, $(ARCHS), $(call swap, $(arch), $(archs_all), $(arch_names_all) ) )
-	ARCHS ?= $(archs_all)
+	sdk = $(shell xcrun --sdk iphoneos --show-sdk-path)
+	platform_version_min = iphoneos-version-min="11.0"
+	arch = arm64
+	arch_name = arm-apple-darwin64
+	host = $(arch_name)
+	ARCHS ?= $(arch)
 else ifeq ($(platform), simulator)
 	PLATFORM_PREFIX=simulator
-	SDK_IPHONESIMULATOR_PATH=$(shell xcrun --sdk iphonesimulator --show-sdk-path)
-	IOS_DEPLOY_TGT="11.0"
-
-	sdks = $(SDK_IPHONESIMULATOR_PATH)
-	platform_version_mins = ios-simulator-version-min=$(IOS_DEPLOY_TGT)
-	archs_all = x86_64
-	arch_names_all = x86_64-apple-darwin
-	host = $(arch_names_all)
-	arch_names = $(foreach arch, $(ARCHS), $(call swap, $(arch), $(archs_all), $(arch_names_all) ) )
-	ARCHS ?= $(archs_all)
+	sdk = $(shell xcrun --sdk iphonesimulator --show-sdk-path)
+	platform_version_min = ios-simulator-version-min="11.0"
+	arch = x86_64
+	arch_name = x86_64-apple-darwin
+	host = $(arch_name)
+	ARCHS ?= $(arch)
 else ifeq ($(platform), catalyst)
 	PLATFORM_PREFIX=catalyst
-	SDK_MACOS_PATH=$(shell xcrun --sdk macosx --show-sdk-path)
-	MACOS_DEPLOY_TGT="10.15"
-
-	sdks = $(SDK_MACOS_PATH)
-	platform_version_mins = iphoneos-version-min="13.0"
-	archs_all = x86_64
-	arch_names_all = x86_64-apple-ios13.0-macabi
+	sdk = $(shell xcrun --sdk macosx --show-sdk-path)
+	platform_version_min = iphoneos-version-min="13.0"
+	arch = x86_64
+	arch_name = x86_64-apple-ios13.0-macabi
 	host = x86_64-apple-darwin
-	arch_names = $(foreach arch, $(ARCHS), $(call swap, $(arch), $(archs_all), $(arch_names_all) ) )
-	ARCHS ?= $(archs_all)
+	ARCHS ?= $(arch)
 else ifeq ($(platform), macos)
 	PLATFORM_PREFIX=macos
-	SDK_MACOS_PATH=$(shell xcrun --sdk macosx --show-sdk-path)
-	MACOS_DEPLOY_TGT="10.13"
-
-	sdks = $(SDK_MACOS_PATH)
-	platform_version_mins = macosx-version-min=$(MACOS_DEPLOY_TGT)
-	archs_all = x86_64
-	arch_names_all = x86_64-apple-darwin
-	host = $(arch_names_all)
-	arch_names = $(foreach arch, $(ARCHS), $(call swap, $(arch), $(archs_all), $(arch_names_all) ) )
-	ARCHS ?= $(archs_all)
+	sdk = $(shell xcrun --sdk macosx --show-sdk-path)
+	platform_version_min = macosx-version-min="10.13"
+	arch = x86_64
+	arch_name = x86_64-apple-darwin
+	host = $(arch_name)
+	ARCHS ?= $(arch)
 endif
-
-# TOOD: Rename SOURCES and maybe SRC_DIR to be more descriptive
-SOURCES = $(SRC_DIR)/$(PLATFORM_PREFIX)
 
 INCLUDE_DIR   = $(shell pwd)/$(PLATFORM_PREFIX)/include
 LEPT_INC_DIR  = $(INCLUDE_DIR)
@@ -108,39 +86,33 @@ IMAGE_LIB_DIR = $(INCLUDE_DIR)
 IMAGE_INC_DIR = $(INCLUDE_DIR)
 LIB_FAT_DIR   = $(INCLUDE_DIR)
 
-libpngfolders  = $(foreach arch, $(arch_names), $(PNG_SRC)/$(arch)/)
-libjpegfolders = $(foreach arch, $(arch_names), $(JPEG_SRC)/$(arch)/)
-libtifffolders = $(foreach arch, $(arch_names), $(TIFF_SRC)/$(arch)/)
-libleptfolders = $(foreach arch, $(arch_names), $(LEPTON_SRC)/$(PLATFORM_PREFIX)/$(arch)/)
-libtessfolders = $(foreach arch, $(arch_names), $(TESSERACT_SRC)/$(PLATFORM_PREFIX)/$(arch)/)
+libpngfolder  = $(PNG_SRC)/$(arch)/
+libjpegfolder = $(JPEG_SRC)/$(arch)/
+libtifffolder = $(TIFF_SRC)/$(arch)/
+libleptfolder = $(LEPTON_SRC)/$(PLATFORM_PREFIX)/$(arch)/
+libtessfolder = $(TESSERACT_SRC)/$(PLATFORM_PREFIX)/$(arch)/
 
-libpngfolders_all  = $(foreach arch, $(arch_names_all), $(PNG_SRC)/$(arch)/)
-libjpegfolders_all = $(foreach arch, $(arch_names_all), $(JPEG_SRC)/$(arch)/)
-libtifffolders_all = $(foreach arch, $(arch_names_all), $(TIFF_SRC)/$(arch)/)
-libleptfolders_all = $(foreach arch, $(arch_names_all), $(LEPTON_SRC)/$(PLATFORM_PREFIX)/$(arch)/)
-libtessfolders_all = $(foreach arch, $(arch_names_all), $(TESSERACT_SRC)/$(PLATFORM_PREFIX)/$(arch)/)
+libpngmakefile  = $(addprefix $(libpngfolder), Makefile)
+libjpegmakefile = $(addprefix $(libjpegfolder), Makefile)
+libtiffmakefile = $(addprefix $(libtifffolder), Makefile)
+libleptmakefile = $(addprefix $(libleptfolder), Makefile)
+libtessmakefile = $(addprefix $(libtessfolder), Makefile)
 
-libpngmakefile  = $(foreach folder, $(libpngfolders), $(addprefix $(folder), Makefile) )
-libjpegmakefile = $(foreach folder, $(libjpegfolders), $(addprefix $(folder), Makefile) )
-libtiffmakefile = $(foreach folder, $(libtifffolders), $(addprefix $(folder), Makefile) )
-libleptmakefile = $(foreach folder, $(libleptfolders), $(addprefix $(folder), Makefile) )
-libtessmakefile = $(foreach folder, $(libtessfolders), $(addprefix $(folder), Makefile) )
+install_liblept = $(LIB_FAT_DIR)/$(libleptfiles)
+install_libtess = $(LIB_FAT_DIR)/$(libtessfiles)
+install_libpngfat  = $(LIB_FAT_DIR)/$(libpngfiles)
+install_libjpegfat = $(LIB_FAT_DIR)/$(libjpegfiles)
+install_libtifffat = $(LIB_FAT_DIR)/$(libtifffiles)
 
-libleptfat = $(LIB_FAT_DIR)/$(libleptfiles)
-libtessfat = $(LIB_FAT_DIR)/$(libtessfiles)
-libpngfat  = $(LIB_FAT_DIR)/$(libpngfiles)
-libjpegfat = $(LIB_FAT_DIR)/$(libjpegfiles)
-libtifffat = $(LIB_FAT_DIR)/$(libtifffiles)
+libtess    = $(addprefix $(libtessfolder)lib/, $(libtessfiles))
+liblept    = $(addprefix $(libleptfolder)lib/, $(libleptfiles))
+libpng     = $(addprefix $(libpngfolder)lib/, $(libpngfiles))
+libjpeg    = $(addprefix $(libjpegfolder)lib/, $(libjpegfiles))
+libtiff    = $(addprefix $(libtifffolder)lib/, $(libtifffiles))
 
-libtess    = $(foreach folder, $(libtessfolders), $(addprefix $(folder)lib/, $(libtessfiles)) )
-liblept    = $(foreach folder, $(libleptfolders), $(addprefix $(folder)lib/, $(libleptfiles)) )
-libpng     = $(foreach folder, $(libpngfolders), $(addprefix $(folder)lib/, $(libpngfiles)) )
-libjpeg    = $(foreach folder, $(libjpegfolders), $(addprefix $(folder)lib/, $(libjpegfiles)) )
-libtiff    = $(foreach folder, $(libtifffolders), $(addprefix $(folder)lib/, $(libtifffiles)) )
+dependant_libs = $(install_libpngfat) $(install_libjpegfat) $(install_libtifffat) $(install_liblept) $(install_libtess)
 
-dependant_libs = $(libpngfat) $(libjpegfat) $(libtifffat) $(libleptfat) $(libtessfat)
-
-common_cflags = -arch $(call swap, $*, $(arch_names_all), $(archs_all)) -pipe -no-cpp-precomp -isysroot $$SDKROOT -m$(call swap, $*, $(arch_names_all), $(platform_version_mins)) -O2
+common_cflags = -arch $(arch) -pipe -no-cpp-precomp -isysroot $$SDKROOT -m$(platform_version_min) -O2
 
 ifneq (,$(filter $(platform),ios simulator catalyst macos))
 .PHONY : all
@@ -158,95 +130,95 @@ endif
 # Build libtiff and all of its dependencies
 #######################
 
-$(libtifffat) : $(libtiff)
+$(install_libtifffat) : $(libtiff)
 	mkdir -p $(@D)
-	cp $(realpath $(addsuffix lib/$(@F), $(libtifffolders_all)) ) $@
+	cp $(realpath $(addsuffix lib/$(@F), $(libtifffolder)) ) $@
 	mkdir -p $(IMAGE_INC_DIR)
-	cp -rvf $(firstword $(libtifffolders))include/*.h $(IMAGE_INC_DIR)
+	cp -rvf $(firstword $(libtifffolder))include/*.h $(IMAGE_INC_DIR)
 
 $(libtiff) :  $(libtiffmakefile)
 	cd $(abspath $(@D)/..) ; \
 	$(MAKE) -sj8 && $(MAKE) install
 
 $(TIFF_SRC)/%/Makefile : $(libtiffconfig)
-	export SDKROOT="$(call swap, $*, $(arch_names_all), $(sdks))" ; \
+	export SDKROOT="$(sdk)" ; \
 	export CFLAGS="$(common_cflags) -fembed-bitcode" ; \
 	export CPPFLAGS=$$CFLAGS ; \
 	export CXXFLAGS="$$CFLAGS -Wno-deprecated-register"; \
 	export LDFLAGS="-L$$SDKROOT/usr/lib/" ; \
 	mkdir -p $(@D) ; \
 	cd $(@D) ; \
-	../configure CXX="$(TARGET_CXX) --target=$*" CC="$(TARGET_CC) --target=$*" --host=$(host) --enable-fast-install --enable-shared=no --prefix=`pwd` --without-x --with-jpeg-include-dir=$(abspath $(@D)/../../$(JPEG_DIR_NAME)/$*/include) --with-jpeg-lib-dir=$(abspath $(@D)/../../$(JPEG_DIR_NAME)/$*/lib)
+	../configure CXX="$(TARGET_CXX) --target=$(arch_name)" CC="$(TARGET_CC) --target=$(arch_name)" --host=$(host) --enable-fast-install --enable-shared=no --prefix=`pwd` --without-x --with-jpeg-include-dir=$(abspath $(@D)/../../$(JPEG_DIR_NAME)/$(arch)/include) --with-jpeg-lib-dir=$(abspath $(@D)/../../$(JPEG_DIR_NAME)/$(arch)/lib)
 
 
-$(libpngfat) : $(libpng)
+$(install_libpngfat) : $(libpng)
 	mkdir -p $(@D)
-	cp $(realpath $(addsuffix lib/$(@F), $(libpngfolders_all)) ) $@
+	cp $(realpath $(addsuffix lib/$(@F), $(libpngfolder)) ) $@
 	mkdir -p $(IMAGE_INC_DIR)/libpng
-	cp -rvf $(firstword $(libpngfolders))include/*.h $(IMAGE_INC_DIR)
+	cp -rvf $(firstword $(libpngfolder))include/*.h $(IMAGE_INC_DIR)
 
 $(libpng) : $(libpngmakefile)
 	cd $(abspath $(@D)/..) ; \
 	$(MAKE) -sj8 && $(MAKE) install
 
 $(PNG_SRC)/%/Makefile : $(libpngconfig)
-	export SDKROOT="$(call swap, $*, $(arch_names_all), $(sdks))" ; \
+	export SDKROOT="$(sdk)" ; \
 	export CFLAGS="$(common_cflags) -fembed-bitcode" ; \
 	export CPPFLAGS=$$CFLAGS ; \
 	export CXXFLAGS="$$CFLAGS -Wno-deprecated-register"; \
 	export LDFLAGS="-L$$SDKROOT/usr/lib/" ; \
 	mkdir -p $(@D) ; \
 	cd $(@D) ; \
-	../configure CXX="$(TARGET_CXX) --target=$*" CC="$(TARGET_CC) --target=$*" --host=$(host) --enable-shared=no --prefix=`pwd`
+	../configure CXX="$(TARGET_CXX) --target=$(arch_name)" CC="$(TARGET_CC) --target=$(arch_name)" --host=$(host) --enable-shared=no --prefix=`pwd`
 
-$(libjpegfat) : $(libjpeg)
+$(install_libjpegfat) : $(libjpeg)
 	mkdir -p $(@D)
-	cp $(realpath $(addsuffix lib/$(@F), $(libjpegfolders_all)) ) $@
+	cp $(realpath $(addsuffix lib/$(@F), $(libjpegfolder)) ) $@
 	mkdir -p $(IMAGE_INC_DIR)/libjpeg
-	cp -rvf $(firstword $(libjpegfolders))include/*.h $(IMAGE_INC_DIR)
+	cp -rvf $(firstword $(libjpegfolder))include/*.h $(IMAGE_INC_DIR)
 
 $(libjpeg) : $(libjpegmakefile)
 	cd $(abspath $(@D)/..) ; \
 	$(MAKE) -sj8 && $(MAKE) install
 
 $(JPEG_SRC)/%/Makefile : $(libjpegconfig)
-	export SDKROOT="$(call swap, $*, $(arch_names_all), $(sdks))" ; \
+	export SDKROOT="$(sdk)" ; \
 	export CFLAGS="$(common_cflags) -fembed-bitcode" ; \
 	export CPPFLAGS=$$CFLAGS ; \
 	export CXXFLAGS="$$CFLAGS -Wno-deprecated-register"; \
 	export LDFLAGS="-L$$SDKROOT/usr/lib/" ; \
 	mkdir -p $(@D) ; \
 	cd $(@D) ; \
-	../configure CXX="$(TARGET_CXX) --target=$*" CC="$(TARGET_CC) --target=$*" --host=$(host) --enable-shared=no --prefix=`pwd`
+	../configure CXX="$(TARGET_CXX) --target=$(arch_name)" CC="$(TARGET_CC) --target=$(arch_name)" --host=$(host) --enable-shared=no --prefix=`pwd`
 
 #######################
 # TESSERACT-OCR
 #######################
-$(libtessfat) : $(libtess)
+$(install_libtess) : $(libtess)
 	mkdir -p $(LIB_FAT_DIR)
-	cp $(realpath $(addsuffix lib/$(@F), $(libtessfolders_all)) ) $@
+	cp $(realpath $(addsuffix lib/$(@F), $(libtessfolder)) ) $@
 	mkdir -p $(TESS_INC_DIR)
-	cp -rvf $(firstword $(libtessfolders))include/tesseract/** $(TESS_INC_DIR)
+	cp -rvf $(firstword $(libtessfolder))include/tesseract/** $(TESS_INC_DIR)
 
 $(libtess) : $(libtessmakefile)
 	cd $(abspath $(@D)/..) && $(MAKE) -sj8 && $(MAKE) install
 
-$(TESSERACT_SRC)/$(PLATFORM_PREFIX)/%/Makefile : $(libtessconfig) $(libleptfat)
+$(TESSERACT_SRC)/$(PLATFORM_PREFIX)/%/Makefile : $(libtessconfig) $(install_liblept)
 	export LIBS="-lz -lpng -ljpeg -ltiff" ; \
-	export SDKROOT="$(call swap, $*, $(arch_names_all), $(sdks))" ; \
-	export CFLAGS="-I$(TESSERACT_SRC)/$(PLATFORM_PREFIX)/$*/ $(common_cflags) -fembed-bitcode" ; \
+	export SDKROOT="$(sdk)" ; \
+	export CFLAGS="-I$(TESSERACT_SRC)/$(PLATFORM_PREFIX)/$(arch_name)/ $(common_cflags) -fembed-bitcode" ; \
 	export CPPFLAGS=$$CFLAGS ; \
 	export CXXFLAGS="-I$(TESSERACT_SRC)/$(PLATFORM_PREFIX)/$*/ $(common_cflags) -Wno-deprecated-register"; \
 	export LDFLAGS="-L$$SDKROOT/usr/lib/ -L$(LIB_FAT_DIR) -L$(LEPTON_SRC)/$(PLATFORM_PREFIX)/$*/src/.libs" ; \
 	export LIBLEPT_HEADERSDIR=$(TESSERACT_SRC)/$(PLATFORM_PREFIX)/$*/ ; \
 	export PKG_CONFIG_PATH=$(LEPTON_SRC)/$(PLATFORM_PREFIX)/$*/ ; \
-	export CXX="$(TARGET_CXX) --target=$*" ; \
-	export CXX_FOR_BUILD="$(TARGET_CXX_FOR_BUILD) --target=$*" ; \
-	export CC="$(TARGET_CC) --target=$*" ; \
+	export CXX="$(TARGET_CXX) --target=$(arch_name)" ; \
+	export CXX_FOR_BUILD="$(TARGET_CXX_FOR_BUILD) --target=$(arch_name)" ; \
+	export CC="$(TARGET_CC) --target=$(arch_name)" ; \
 	mkdir -p $(@D) ; \
 	cd $(@D) ; \
 	ln -s $(LEPTON_SRC)/src/ leptonica ; \
-	../../configure CXX="$(TARGET_CXX) --target=$*" CC="$(TARGET_CC) --target=$*" --host=$(host) --prefix=`pwd` --enable-shared=no --disable-graphics
+	../../configure CXX="$(TARGET_CXX) --target=$(arch_name)" CC="$(TARGET_CC) --target=$(arch_name)" --host=$(host) --prefix=`pwd` --enable-shared=no --disable-graphics
 
 $(libtessconfig) : $(libtessautogen)
 	cd $(@D) && ./autogen.sh 2> /dev/null
@@ -254,32 +226,30 @@ $(libtessconfig) : $(libtessautogen)
 #######################
 # LEPTONICA
 #######################
-$(libleptfat) : $(liblept)
+$(install_liblept) : $(liblept)
 	mkdir -p $(LIB_FAT_DIR)
-	cp $(realpath $(addsuffix lib/$(@F), $(libleptfolders_all)) ) $@
+	cp $(realpath $(addsuffix lib/$(@F), $(libleptfolder)) ) $@
 	mkdir -p $(LEPT_INC_DIR)
-	cp -rvf $(firstword $(libleptfolders))include/leptonica/** $(LEPT_INC_DIR)
+	cp -rvf $(firstword $(libleptfolder))include/leptonica/** $(LEPT_INC_DIR)
 
 $(liblept) : $(libleptmakefile)
 	cd $(abspath $(@D)/..) ; \
 	$(MAKE) -sj8 && $(MAKE) install
 
-$(LEPTON_SRC)/$(PLATFORM_PREFIX)/%/Makefile : $(libtifffat) $(libpngfat) $(libjpegfat) $(libleptconfig)
-	export ALL_LIBS="-lz -lpng -ljpeg -ltiff" ; \
-	export LIBWEBPMUX_LIBS="" ; \
-	export LIBWEBPMUX_CFLAGS="" ; \
-	export SDKROOT="$(call swap, $*, $(arch_names_all), $(sdks))" ; \
+$(LEPTON_SRC)/$(PLATFORM_PREFIX)/%/Makefile : $(install_libtifffat) $(install_libpngfat) $(install_libjpegfat) $(libleptconfig)
+	export LIBS="-lz -lpng -ljpeg -ltiff" ; \
+	export SDKROOT="$(sdk)" ; \
 	export CFLAGS="-I$(INCLUDE_DIR) $(common_cflags) -fembed-bitcode" ; \
 	export CPPFLAGS=$$CFLAGS ; \
 	export CXXFLAGS="-I$(INCLUDE_DIR) $(common_cflags) -Wno-deprecated-register"; \
 	export LDFLAGS="-L$$SDKROOT/usr/lib/ -L$(LIB_FAT_DIR)" ; \
-	export PKG_CONFIG_PATH=$(PNG_SRC)/$*/:$(JPEG_SRC)/$*/:$(TIFF_SRC)/$*/ ; \
-	export CXX="$(TARGET_CXX) --target=$*" ; \
-	export CXX_FOR_BUILD="$(TARGET_CXX_FOR_BUILD) --target=$*" ; \
-	export CC="$(TARGET_CC) --target=$*" ; \
+	export PKG_CONFIG_PATH=$(PNG_SRC)/$(arch)/:$(JPEG_SRC)/$(arch)/:$(TIFF_SRC)/$(arch)/ ; \
+	export CXX="$(TARGET_CXX) --target=$(arch_name)" ; \
+	export CXX_FOR_BUILD="$(TARGET_CXX_FOR_BUILD) --target=$(arch_name)" ; \
+	export CC="$(TARGET_CC) --target=$(arch_name)" ; \
 	mkdir -p $(@D) ; \
 	cd $(@D) ; \
-	../../configure CXX="$(TARGET_CXX) --target=$*" CC="$(TARGET_CC) --target=$*" --host=$(host) --prefix=`pwd` --enable-shared=no --disable-programs --with-zlib --with-libpng --with-jpeg --with-libtiff --without-giflib --without-libwebp --without-libwebpmux
+	../../configure CXX="$(TARGET_CXX) --target=$(arch_name)" CC="$(TARGET_CC) --target=$(arch_name)" --host=$(host) --prefix=`pwd` --enable-shared=no --disable-programs --with-zlib --with-libpng --with-jpeg --with-libtiff --without-giflib --without-libwebp --without-libwebpmux
 
 $(libleptconfig) : $(libleptautogen)
 	cd $(@D) && ./autogen.sh 2> /dev/null
@@ -302,6 +272,7 @@ $(libtessautogen) :
 $(libleptautogen) :
 	curl http://leptonica.org/source/$(LEPTON_NAME).tar.gz | tar -xpf- ; \
 
+
 #######################
 # Clean
 #######################
@@ -316,70 +287,70 @@ mostlyclean : mostlycleanpng mostlycleantiff mostlycleanjpeg mostlycleanlept mos
 
 .PHONY : cleanpng
 cleanpng :
-	for folder in $(realpath $(libpngfolders_all) ); do \
+	for folder in $(realpath $(libpngfolder) ); do \
 		cd $$folder; \
 		$(MAKE) clean; \
 	done
 
 .PHONY : cleanjpeg
 cleanjpeg :
-	for folder in $(realpath $(libjpegfolders_all) ); do \
+	for folder in $(realpath $(libjpegfolder) ); do \
 		cd $$folder; \
 		$(MAKE) clean; \
 	done
 
 .PHONY : cleantiff
 cleantiff :
-	for folder in $(realpath $(libtifffolders_all) ); do \
+	for folder in $(realpath $(libtifffolder) ); do \
 		cd $$folder; \
 		$(MAKE) clean; \
 	done
 
 .PHONY : cleanlept
 cleanlept :
-	for folder in $(realpath $(libleptfolders_all) ); do \
+	for folder in $(realpath $(libleptfolder) ); do \
 		cd $$folder; \
 		$(MAKE) clean; \
 	done ;
 
 .PHONY : cleantess
 cleantess :
-	for folder in $(realpath $(libtessfolders_all) ); do \
+	for folder in $(realpath $(libtessfolder) ); do \
 		cd $$folder; \
 		$(MAKE) clean; \
 	done ;
 
 .PHONY : mostlycleanlept
 mostlycleanlept :
-	for folder in $(realpath $(libleptfolders) ); do \
+	for folder in $(realpath $(libleptfolder) ); do \
 		cd $$folder; \
 		$(MAKE) mostlyclean; \
 	done ;
 
 .PHONY : mostlycleantess
 mostlycleantess :
-	for folder in $(realpath $(libtessfolders_all) ); do \
+	for folder in $(realpath $(libtessfolder) ); do \
 		cd $$folder; \
 		$(MAKE) mostlyclean; \
 	done ;
 
 .PHONY : mostlycleanpng
 mostlycleanpng :
-	for folder in $(realpath $(libpngfolders) ); do \
+	for folder in $(realpath $(libpngfolder) ); do \
 		cd $$folder; \
 		$(MAKE) mostlyclean; \
 	done
 
 .PHONY : mostlycleantiff
 mostlycleantiff :
-	for folder in $(realpath $(libtifffolders_all) ); do \
+	for folder in $(realpath $(libtifffolder) ); do \
 		cd $$folder; \
 		$(MAKE) mostlyclean; \
 	done
 
 .PHONY : mostlycleanjpeg
 mostlycleanjpeg :
-	for folder in $(realpath $(libjpegfolders_all) ); do \
+	for folder in $(realpath $(libjpegfolder) ); do \
 		cd $$folder; \
 		$(MAKE) mostlyclean; \
 	done
@@ -394,13 +365,13 @@ distcleanimages :
 PHONY : distcleanlept
 distcleanlept :
 	-rm -rf $(LEPT_INC_DIR)/leptonica
-	-rm -rf $(libleptfat)
+	-rm -rf $(install_liblept)
 	-rm -rf $(LEPTON_SRC)
 
 .PHONY : distcleantess
 distcleantess :
 	-rm -rf $(TESS_INC_DIR)/tesseract
-	-rm -rf $(libtessfat)
+	-rm -rf $(install_libtess)
 	-rm -rf $(TESSERACT_SRC)
 
 .PHONY : FORCE

@@ -11,17 +11,16 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'Do not upload')"
     steps:
       - uses: actions/checkout@v1
-      - name: Install automake and pkg-config
-        run: brew install automake pkg-config
-      - name: Switch to Xcode 12
-        run: sudo xcode-select --switch /Applications/Xcode_12_beta.app/Contents/Developer
-      - name: Build libtesseract
-        run: sh build_all.sh
+      - name: Install automake, pkg-config, and task
+        run: brew install automake pkg-config go-task/tap/go-task
+      - name: Switch to Xcode 12.4
+        run: sudo xcode-select --switch /Applications/Xcode_12.4.app/Contents/Developer
       - name: Assign Tag Number to RELEASE_VERSION environment variable
         run: echo ::set-env name=RELEASE_VERSION::${GITHUB_REF#refs/*/*/}
-      - name: Push artifact to Bintray
-        run: go run publish.go -path ../build/libtesseract.xcframework -version $RELEASE_VERSION -bintray-key ${{ secrets.BINTRAY_KEY }}
-        working-directory: publish
+      - name: Build libtesseract
+        run: task build-tesseract-xcframework-zip
+      - name: Update Package.swift
+        run: python3 update_package_swift.py --version $RELEASE_VERSION
       - name: Commit Package.swift update
         uses: EndBug/add-and-commit@v4
         with:
@@ -29,3 +28,11 @@ jobs:
           message: 'Auto-updating Package.swift'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create draft release
+        uses: ncipollo/release-action@v1
+        with:
+          artifact: "libtesseract-${{env.RELEASE_VERSION}}.xcframework.zip"
+          draft: true
+          allowUpdates: true
+          tag: ${{env.RELEASE_VERSION}}
+          token: ${{ secrets.GITHUB_TOKEN }}

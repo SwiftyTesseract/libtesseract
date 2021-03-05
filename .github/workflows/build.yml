@@ -18,8 +18,8 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install automake and pkg-config
-      run: brew install automake pkg-config
-    - name: Switch to Xcode 12
-      run: sudo xcode-select --switch /Applications/Xcode_12_beta.app/Contents/Developer
+      run: brew install automake pkg-config go-task/tap/go-task
+    - name: Switch to Xcode 12.4
+      run: sudo xcode-select --switch /Applications/Xcode_12.4.app/Contents/Developer
     - name: Build libtesseract
-      run: sh build_all.sh
+      run: task 

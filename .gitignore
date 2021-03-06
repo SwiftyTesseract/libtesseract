@@ -94,3 +94,5 @@ tiff-*
 libpng-*
 4.*.zip
 tesseract-*
+.vscode
+.swiftpm

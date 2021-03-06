@@ -14,8 +14,9 @@ import PackageDescription
 let package = Package(
   name: "AwesomePackage",
   platforms: [
-    .macOS(.v10_15),
-    .iOS(.v13),
+    // These are the minimum versions libtesseract supports
+    .macOS(.v10_13),
+    .iOS(.v11),
   ],
   products: [
     .library(
@@ -29,7 +30,8 @@ let package = Package(
   targets: [
     .target(
       name: "AwesomePackage",
-      dependencies: ["libtesseract"]
+      dependencies: ["libtesseract"],
+      linkerSettings: [.linkedLibrary("z"), .linkedLibrary("c++")]
     ),
   ]
 )
@@ -44,6 +46,18 @@ You must link against the following libraries:
 
 This can be done in an Xcode-based project by adding these in Build Phases -> Link Binary with Libaries
 ![screenshot of xcode linking libc++ and libz](link_libraries.png)
+
+In a Swift Package Manager project, this can be achieved by adding the following to your target `linkerSettings`:
+```swift
+// See Package.swift example above for full context
+  targets: [
+    .target(
+      name: "AwesomePackage",
+      dependencies: ["libtesseract"],
+      linkerSettings: [.linkedLibrary("z"), .linkedLibrary("c++")]
+    ),
+  ]
+```
 
 See SwiftyTesseract's [Additonal Configuration](https://github.com/SwiftyTesseract/SwiftyTesseract#additional-configuration) notes on considerations for including language training data files.
 

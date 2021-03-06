@@ -22,4 +22,4 @@ jobs:
     - name: Switch to Xcode 12.4
       run: sudo xcode-select --switch /Applications/Xcode_12.4.app/Contents/Developer
     - name: Build libtesseract
-      run: task 
+      run: task build-tesseract-xcframework

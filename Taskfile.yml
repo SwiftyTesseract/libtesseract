@@ -1,0 +1,646 @@
+version: '3'
+
+vars:
+  SRC_DIR:
+    sh: pwd
+  
+  PNG_VERSION: 1.6.36
+  PNG_NAME: libpng-{{.PNG_VERSION}}
+  PNG_SRC: "{{.SRC_DIR}}/{{.PNG_NAME}}"
+  PNG_ARCHIVE: libpng.a
+  PNG_CONFIG: "{{.PNG_SRC}}/configure"
+
+  JPEG_SRC_NAME: jpegsrc.v9c
+  JPEG_DIR_NAME: jpeg-9c # folder name after the JPEG_SRC_NAME archive has been unpacked
+  JPEG_SRC:  "{{.SRC_DIR}}/{{.JPEG_DIR_NAME}}"
+  JPEG_ARCHIVE: libjpeg.a
+  JPEG_CONFIG: "{{.JPEG_SRC}}/configure"
+
+  TIFF_NAME: tiff-4.0.10
+  TIFF_SRC:  "{{.SRC_DIR}}/{{.TIFF_NAME}}"
+  TIFF_ARCHIVE: libtiff.a
+  TIFF_CONFIG: "{{.TIFF_SRC}}/configure"
+
+  TESSERACT_VERSION: 4.1.0
+  TESSERACT_NAME: tesseract-{{.TESSERACT_VERSION}}
+  TESSERACT_SRC: "{{.SRC_DIR}}/{{.TESSERACT_NAME}}"
+  TESSERACT_ARCHIVE: libtesseract.a
+  TESSERACT_AUTOGEN: "{{.TESSERACT_SRC}}/autogen.sh"
+  TESSERACT_CONFIG: "{{.TESSERACT_SRC}}/configure"
+
+  LEPTONICA_VERSION: 1.79.0
+  LEPTONICA_NAME: leptonica-{{.LEPTONICA_VERSION}}
+  LEPTONICA_SRC:  "{{.SRC_DIR}}/{{.LEPTONICA_NAME}}"
+  LEPTONICA_ARCHIVE: liblept.a
+  LEPTONICA_AUTOGEN: "{{.LEPTONICA_SRC}}/autogen.sh"
+  LEPTONICA_CONFIG: "{{.LEPTONICA_SRC}}/configure"
+
+  LIBTESSERACT_PROJECT: libtesseract.xcodeproj
+
+  IOS_VERSION_MIN: iphoneos-version-min=11.0
+  IOS_ARCH_NAME: arm-apple-darwin64
+  IOS_HOST: "{{.IOS_ARCH_NAME}}"
+  IOS_PLATFORM_PREFIX: ios
+  IOS_ARCH: arm64
+  IOS_SDK:
+    sh: xcrun --sdk iphoneos --show-sdk-path
+
+  IOS_FRAMEWORK: "{{.SRC_DIR}}/build/Release-iphoneos/libtesseract.framework"
+
+  IOS_SIMULATOR_VERSION_MIN: ios-simulator-version-min=11.0
+  IOS_SIMULATOR_PLATFORM_PREFIX: simulator
+  IOS_SIMULATOR_SDK:
+    sh: xcrun --sdk iphonesimulator --show-sdk-path
+
+  IOS_SIMULATOR_ARM_ARCH_NAME: arm-apple-darwin64
+  IOS_SIMULATOR_ARM_HOST: "{{.IOS_SIMULATOR_ARM_ARCH_NAME}}"
+  IOS_SIMULATOR_ARM_ARCH: arm64
+
+  IOS_SIMULATOR_X86_ARCH_NAME: x86_64-apple-darwin
+  IOS_SIMULATOR_X86_HOST: "{{.IOS_SIMULATOR_X86_ARCH_NAME}}"
+  IOS_SIMULATOR_X86_ARCH: x86_64
+
+  IOS_SIMULATOR_FRAMEWORK: "{{.SRC_DIR}}/build/Release-iphonesimulator/libtesseract.framework"
+
+  MACOS_VERSION_MIN: macosx-version-min=10.13
+  MACOS_PLATFORM_PREFIX: macos
+  MACOS_SDK:
+    sh: xcrun --sdk macosx --show-sdk-path
+  
+  MACOS_ARM_ARCH_NAME: arm-apple-darwin64
+  MACOS_ARM_ARCH: arm64
+  MACOS_ARM_HOST: "{{.MACOS_ARM_ARCH_NAME}}"
+
+  MACOS_X86_ARCH_NAME: x86_64-apple-darwin
+  MACOS_X86_ARCH: x86_64
+  MACOS_X86_HOST: "{{.MACOS_X86_ARCH_NAME}}"
+
+  MACOS_FRAMEWORK: "{{.SRC_DIR}}/build/Release/libtesseract.framework"
+
+  CATALYST_VERSION_MIN: iphoneos-version-min=13.0
+  CATALYST_PLATFORM_PREFIX: catalyst
+  CATALYST_SDK:
+    sh: xcrun --sdk macosx --show-sdk-path
+
+  CATALYST_ARM_ARCH_NAME: arm64-apple-ios-macabi
+  CATALYST_ARM_ARCH: arm64
+  CATALYST_ARM_HOST: arm-apple-darwin64
+
+  CATALYST_X86_ARCH_NAME: x86_64-apple-ios-macabi
+  CATALYST_X86_ARCH: x86_64
+  CATALYST_X86_HOST: x86_64-apple-darwin
+
+  CATALYST_FRAMEWORK: "{{.SRC_DIR}}/build/Release-maccatalyst/libtesseract.framework"
+
+env:
+  TARGET_CXX: /usr/bin/clang++
+  TARGET_CXX_FOR_BUILD: /usr/bin/clang++
+  TARGET_CC: /usr/bin/clang
+
+tasks:
+  clean-build-folder:
+    cmds:
+      - rm -rf {{.SRC_DIR}}/build
+
+  clean-artifacts:
+    cmds:
+      - rm -rf {{.SRC_DIR}}/include/*.h *.a
+
+  clean-sources:
+    cmds:
+      - task: clean-artifacts
+      - rm -rf {{.PNG_SRC}} {{.TIFF_SRC}} {{.JPEG_SRC}} {{.LEPTONICA_SRC}} {{.TESSERACT_SRC}}
+
+  build-tesseract-xcframework-zip:
+    cmds:
+      - task: build-tesseract-xcframework
+      - zip -r {{.SRC_DIR}}/libtesseract-{{.RELEASE_VERSION}}.xcframework.zip {{.SRC_DIR}}/build/libtesseract.xcframework
+
+  build-tesseract-xcframework:
+    cmds:
+      - task: clean-build-folder
+      - task: clean-sources
+      - task: build-tesseract-catalyst-framework
+      - task: clean-sources
+      - task: build-tesseract-macos-framework
+      - task: clean-sources
+      - task: build-tesseract-ios-simulator-framework
+      - task: clean-sources
+      - task: build-tesseract-ios-framework
+      - task: clean-sources
+      - |
+        xcodebuild -create-xcframework \
+          -framework {{.IOS_FRAMEWORK}} \
+          -framework {{.IOS_SIMULATOR_FRAMEWORK}} \
+          -framework {{.MACOS_FRAMEWORK}} \
+          -framework {{.CATALYST_FRAMEWORK}} \
+          -output {{.SRC_DIR}}/build/libtesseract.xcframework
+    status:
+      - test -f {{.SRC_DIR}}/build/libtesseract.xcframework
+
+  build-tesseract-catalyst-framework:
+    cmds:
+      - task: build-tesseract-catalyst
+      - cp {{.SRC_DIR}}/{{.CATALYST_PLATFORM_PREFIX}}/combined.a .
+      - cp -r {{.SRC_DIR}}/{{.CATALYST_PLATFORM_PREFIX}}/include/*h {{.SRC_DIR}}/include
+      - sed -ie 's/.*fract1.*//' {{.SRC_DIR}}/include/allheaders.h
+      - |
+        xcodebuild -project {{.LIBTESSERACT_PROJECT}} \
+          -scheme 'libtesseract iOS' \
+          -sdk macosx \
+          -destination 'platform=macOS,variant=Mac Catalyst' \
+          -configuration 'Release' \
+          SYMROOT=`pwd`/build \
+          -derivedDataPath {{.SRC_DIR}}/DerivedData \
+          BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+          build
+    status:
+      - test -f {{.CATALYST_FRAMEWORK}}
+
+  build-tesseract-catalyst:
+    cmds:
+      - task: install-libtesseract
+        vars:
+          SDK: "{{.CATALYST_SDK}}"
+          PLATFORM_VERSION_MIN: "{{.CATALYST_VERSION_MIN}}"
+          HOST: "{{.CATALYST_ARM_HOST}}"
+          ARCH_NAME: "{{.CATALYST_ARM_ARCH_NAME}}"
+          ARCH: "{{.CATALYST_ARM_ARCH}}"
+          PLATFORM_PREFIX: "{{.CATALYST_PLATFORM_PREFIX}}"
+      - task: install-libtesseract
+        vars:
+          SDK: "{{.CATALYST_SDK}}"
+          PLATFORM_VERSION_MIN: "{{.CATALYST_VERSION_MIN}}"
+          HOST: "{{.CATALYST_X86_HOST}}"
+          ARCH_NAME: "{{.CATALYST_X86_ARCH_NAME}}"
+          ARCH: "{{.CATALYST_X86_ARCH}}"
+          PLATFORM_PREFIX: "{{.CATALYST_PLATFORM_PREFIX}}"
+      - |
+        xcrun lipo \
+          {{.SRC_DIR}}/{{.CATALYST_PLATFORM_PREFIX}}/{{.CATALYST_ARM_ARCH_NAME}}/combined.a \
+          {{.SRC_DIR}}/{{.CATALYST_PLATFORM_PREFIX}}/{{.CATALYST_X86_ARCH_NAME}}/combined.a \
+          -create -output {{.SRC_DIR}}/{{.CATALYST_PLATFORM_PREFIX}}/combined.a
+    status:
+      - test -f {{.SRC_DIR}}/{{.CATALYST_PLATFORM_PREFIX}}/combined.a
+
+  build-tesseract-macos-framework:
+    cmds:
+      - task: build-tesseract-macos
+      - cp {{.SRC_DIR}}/{{.MACOS_PLATFORM_PREFIX}}/combined.a .
+      - cp -r {{.SRC_DIR}}/{{.MACOS_PLATFORM_PREFIX}}/include/*h {{.SRC_DIR}}/include
+      - sed -ie 's/.*fract1.*//' {{.SRC_DIR}}/include/allheaders.h
+      - |
+        xcodebuild -project {{.LIBTESSERACT_PROJECT}} \
+          -scheme 'libtesseract macOS' \
+          -sdk macosx \
+          -destination 'generic/platform=macOS' \
+          -configuration 'Release' \
+          SYMROOT=`pwd`/build \
+          -derivedDataPath {{.SRC_DIR}}/DerivedData \
+          BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+          build
+    status:
+      - test -f {{.MACOS_FRAMEWORK}}
+
+  build-tesseract-macos:
+    cmds:
+      - task: install-libtesseract
+        vars:
+          SDK: "{{.MACOS_SDK}}"
+          PLATFORM_VERSION_MIN: "{{.MACOS_VERSION_MIN}}"
+          HOST: "{{.MACOS_ARM_HOST}}"
+          ARCH_NAME: "{{.MACOS_ARM_ARCH_NAME}}"
+          ARCH: "{{.MACOS_ARM_ARCH}}"
+          PLATFORM_PREFIX: "{{.MACOS_PLATFORM_PREFIX}}"
+      - task: install-libtesseract
+        vars:
+          SDK: "{{.MACOS_SDK}}"
+          PLATFORM_VERSION_MIN: "{{.MACOS_VERSION_MIN}}"
+          HOST: "{{.MACOS_X86_HOST}}"
+          ARCH_NAME: "{{.MACOS_X86_ARCH_NAME}}"
+          ARCH: "{{.MACOS_X86_ARCH}}"
+          PLATFORM_PREFIX: "{{.MACOS_PLATFORM_PREFIX}}"
+      - |
+        xcrun lipo \
+          {{.SRC_DIR}}/{{.MACOS_PLATFORM_PREFIX}}/{{.MACOS_ARM_ARCH_NAME}}/combined.a \
+          {{.SRC_DIR}}/{{.MACOS_PLATFORM_PREFIX}}/{{.MACOS_X86_ARCH_NAME}}/combined.a \
+          -create -output {{.SRC_DIR}}/{{.MACOS_PLATFORM_PREFIX}}/combined.a
+    status:
+      - test -f {{.SRC_DIR}}/{{.MACOS_PLATFORM_PREFIX}}/combined.a
+
+  build-tesseract-ios-simulator-framework:
+    cmds:
+      - task: build-tesseract-ios-simulator
+      - cp {{.SRC_DIR}}/{{.IOS_SIMULATOR_PLATFORM_PREFIX}}/combined.a .
+      - cp -r {{.SRC_DIR}}/{{.IOS_SIMULATOR_PLATFORM_PREFIX}}/include/*h {{.SRC_DIR}}/include
+      - |
+        xcodebuild -project {{.LIBTESSERACT_PROJECT}} \
+          -scheme 'libtesseract iOS' \
+          -sdk iphonesimulator \
+          -destination 'generic/platform=iOS Simulator' \
+          -configuration 'Release' \
+          SYMROOT=`pwd`/build \
+          -derivedDataPath {{.SRC_DIR}}/DerivedData \
+          BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+          build
+    status:
+      - test -f {{.IOS_SIMULATOR_FRAMEWORK}}
+
+  build-tesseract-ios-simulator:
+    cmds:
+      - task: install-libtesseract
+        vars:
+          SDK: "{{.IOS_SIMULATOR_SDK}}"
+          PLATFORM_VERSION_MIN: "{{.IOS_SIMULATOR_VERSION_MIN}}"
+          HOST: "{{.IOS_SIMULATOR_ARM_HOST}}"
+          ARCH_NAME: "{{.IOS_SIMULATOR_ARM_ARCH_NAME}}"
+          ARCH: "{{.IOS_SIMULATOR_ARM_ARCH}}"
+          PLATFORM_PREFIX: "{{.IOS_SIMULATOR_PLATFORM_PREFIX}}"
+      - task: install-libtesseract
+        vars:
+          SDK: "{{.IOS_SIMULATOR_SDK}}"
+          PLATFORM_VERSION_MIN: "{{.IOS_SIMULATOR_VERSION_MIN}}"
+          HOST: "{{.IOS_SIMULATOR_X86_HOST}}"
+          ARCH_NAME: "{{.IOS_SIMULATOR_X86_ARCH_NAME}}"
+          ARCH: "{{.IOS_SIMULATOR_X86_ARCH}}"
+          PLATFORM_PREFIX: "{{.IOS_SIMULATOR_PLATFORM_PREFIX}}"
+      - |
+        xcrun lipo \
+          {{.SRC_DIR}}/{{.IOS_SIMULATOR_PLATFORM_PREFIX}}/{{.IOS_SIMULATOR_ARM_ARCH_NAME}}/combined.a \
+          {{.SRC_DIR}}/{{.IOS_SIMULATOR_PLATFORM_PREFIX}}/{{.IOS_SIMULATOR_X86_ARCH_NAME}}/combined.a \
+          -create -output {{.SRC_DIR}}/{{.IOS_SIMULATOR_PLATFORM_PREFIX}}/combined.a
+    status:
+      - test -f {{.SRC_DIR}}/{{.IOS_SIMULATOR_PLATFORM_PREFIX}}/combined.a
+
+  build-tesseract-ios-framework:
+    cmds:
+      - task: build-tesseract-ios
+      - cp {{.SRC_DIR}}/{{.IOS_PLATFORM_PREFIX}}/combined.a .
+      - cp -r {{.SRC_DIR}}/{{.IOS_PLATFORM_PREFIX}}/include/*h {{.SRC_DIR}}/include
+      - |
+        xcodebuild -project {{.LIBTESSERACT_PROJECT}} \
+          -scheme 'libtesseract iOS' \
+          -sdk iphoneos \
+          -destination 'generic/platform=iOS' \
+          -configuration 'Release' \
+          SYMROOT=`pwd`/build \
+          -derivedDataPath {{.SRC_DIR}}/DerivedData \
+          BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+          build
+    status:
+      - test -f {{.IOS_FRAMEWORK}}
+
+  build-tesseract-ios:
+    cmds:
+      - task: install-libtesseract
+        vars:
+          SDK: "{{.IOS_SDK}}"
+          PLATFORM_VERSION_MIN: "{{.IOS_VERSION_MIN}}"
+          HOST: "{{.IOS_HOST}}"
+          ARCH_NAME: "{{.IOS_ARCH_NAME}}"
+          ARCH: "{{.IOS_ARCH}}"
+          PLATFORM_PREFIX: "{{.IOS_PLATFORM_PREFIX}}"
+      - cp {{.SRC_DIR}}/{{.IOS_PLATFORM_PREFIX}}/{{.IOS_ARCH_NAME}}/combined.a {{.SRC_DIR}}/{{.IOS_PLATFORM_PREFIX}}
+    status:
+      - test -f {{.SRC_DIR}}/{{.IOS_PLATFORM_PREFIX}}/combined.a
+  
+  install-libtesseract:
+    cmds:
+      - task: compile-libtesseract
+        vars:
+          SDK: "{{.SDK}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+          ARCH: "{{.ARCH}}"
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          HOST: "{{.HOST}}"
+          PLATFORM_PREFIX: "{{.PLATFORM_PREFIX}}"
+      - mkdir -p {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}
+      - mkdir -p {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/include
+      - cp {{.TESSERACT_SRC}}/{{.ARCH_NAME}}/lib/{{.TESSERACT_ARCHIVE}} {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}
+      - cp -rvf {{.TESSERACT_SRC}}/{{.ARCH_NAME}}/include/tesseract/*.h {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/include
+      - |
+        libtool -static -o {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}/combined.a \
+          {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}/{{.JPEG_ARCHIVE}} \
+          {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}/{{.LEPTONICA_ARCHIVE}} \
+          {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}/{{.PNG_ARCHIVE}} \
+          {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}/{{.TIFF_ARCHIVE}} \
+          {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}/{{.TESSERACT_ARCHIVE}}
+    status:
+      - test -f {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}/combined.a
+
+  compile-libtesseract:
+    cmds:
+      - task: configure-libtesseract
+        vars:
+          SDK: "{{.SDK}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+          ARCH: "{{.ARCH}}"
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          HOST: "{{.HOST}}"
+          PLATFORM_PREFIX: "{{.PLATFORM_PREFIX}}"
+      - |
+        cd {{.TESSERACT_SRC}}/{{.ARCH_NAME}}
+        make -sj8
+        make install
+    status:
+      - test -f {{.TESSERACT_SRC}}/{{.ARCH_NAME}}/lib/{{.TESSERACT_ARCHIVE}}
+
+  configure-libtesseract:
+    deps: 
+      - task: autogen-libtesseract
+      - task: install-liblept
+        vars:
+          SDK: "{{.SDK}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+          ARCH: "{{.ARCH}}"
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          HOST: "{{.HOST}}"
+          PLATFORM_PREFIX: "{{.PLATFORM_PREFIX}}"
+    cmds:
+      - |
+        export LIBS="-lz -lpng -ljpeg -ltiff"
+        export SDKROOT="{{.SDK}}"
+        export CFLAGS="-I{{.TESSERACT_SRC}}/{{.ARCH_NAME}}/ -arch {{.ARCH}} -pipe -no-cpp-precomp -isysroot $SDKROOT -m{{.PLATFORM_VERSION_MIN}} -O2 -fembed-bitcode"
+        export CPPFLAGS=$CFLAGS
+        export CXXFLAGS="-I{{.TESSERACT_SRC}}/{{.ARCH_NAME}}/ -arch {{.ARCH}} -pipe -no-cpp-precomp -isysroot $SDKROOT -m{{.PLATFORM_VERSION_MIN}} -O2 -Wno-deprecated-register"
+        export LDFLAGS="-L$SDKROOT/usr/lib/ -L{{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}} -L{{.LEPTONICA_SRC}}/{{.ARCH_NAME}}/src/.libs"
+        export LIBLEPT_HEADERSDIR={{.TESSERACT_SRC}}/{{.ARCH_NAME}}/
+        export PKG_CONFIG_PATH={{.LEPTONICA_SRC}}/{{.ARCH_NAME}}/
+        export CXX="{{.TARGET_CXX}} --target={{.ARCH_NAME}}"
+        export CXX_FOR_BUILD="{{.TARGET_CXX_FOR_BUILD}} --target={{.ARCH_NAME}}"
+        export CC="{{.TARGET_CC}} --target={{.ARCH_NAME}}"
+        mkdir -p {{.TESSERACT_SRC}}/{{.ARCH_NAME}}
+        cd {{.TESSERACT_SRC}}/{{.ARCH_NAME}}
+        ln -s {{.LEPTONICA_SRC}}/src/ leptonica
+        ../configure --host={{.HOST}} --prefix=`pwd` --enable-shared=no --disable-graphics
+    status:
+      - test -f {{.TESSERACT_SRC}}/{{.ARCH_NAME}}/Makefile
+
+  autogen-libtesseract:
+    deps: [download-libtesseract]
+    cmds:
+      - |
+        cd {{.TESSERACT_SRC}}
+        ./autogen.sh 2> /dev/null
+    status:
+      - test -f {{.TESSERACT_CONFIG}}
+
+  download-libtesseract:
+    cmds:
+      - curl -LO https://github.com/tesseract-ocr/tesseract/archive/{{.TESSERACT_VERSION}}.zip 
+      - unzip -a {{.TESSERACT_VERSION}}.zip
+    status:
+      - test -d {{.TESSERACT_SRC}}
+
+  install-liblept:
+    cmds:
+      - task: compile-liblept
+        vars:
+          SDK: "{{.SDK}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+          ARCH: "{{.ARCH}}"
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          HOST: "{{.HOST}}"
+          PLATFORM_PREFIX: "{{.PLATFORM_PREFIX}}"
+      - mkdir -p {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}
+      - mkdir -p {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/include
+      - cp {{.LEPTONICA_SRC}}/{{.ARCH_NAME}}/lib/{{.LEPTONICA_ARCHIVE}} {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}
+      - cp -rvf {{.LEPTONICA_SRC}}/{{.ARCH_NAME}}/include/leptonica/*.h {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/include
+    status:
+      - test -f {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}/{{.LEPTONICA_ARCHIVE}}
+
+  compile-liblept:
+    cmds:
+      - task: configure-liblept
+        vars:
+          SDK: "{{.SDK}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+          ARCH: "{{.ARCH}}"
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          HOST: "{{.HOST}}"
+          PLATFORM_PREFIX: "{{.PLATFORM_PREFIX}}"
+      - |
+        cd {{.LEPTONICA_SRC}}/{{.ARCH_NAME}}
+        make -sj8
+        make install
+    status:
+      - test -f {{.LEPTONICA_SRC}}/{{.ARCH_NAME}}/lib/{{.LEPTONICA_ARCHIVE}}
+
+  configure-liblept:
+    deps: # These are set up as deps so they can be executed concurrently
+      - task: install-libpng
+        vars:
+          SDK: "{{.SDK}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+          ARCH: "{{.ARCH}}"
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          HOST: "{{.HOST}}"
+          PLATFORM_PREFIX: "{{.PLATFORM_PREFIX}}"
+      - task: install-libjpeg
+        vars:
+          SDK: "{{.SDK}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+          ARCH: "{{.ARCH}}"
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          HOST: "{{.HOST}}"
+          PLATFORM_PREFIX: "{{.PLATFORM_PREFIX}}"
+    cmds:
+      - task: install-libtiff
+        vars:
+            SDK: "{{.SDK}}"
+            PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+            ARCH: "{{.ARCH}}"
+            ARCH_NAME: "{{.ARCH_NAME}}"
+            HOST: "{{.HOST}}"
+            PLATFORM_PREFIX: "{{.PLATFORM_PREFIX}}"
+      - task: autogen-liblept
+      - |
+        export SDKROOT={{.SDK}}
+        export CFLAGS="-I{{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/include -arch {{.ARCH}} -pipe -no-cpp-precomp -isysroot $SDKROOT -m{{.PLATFORM_VERSION_MIN}} -O2 -fembed-bitcode"
+        export CPPFLAGS=$CFLAGS
+        export CXXFLAGS="-I{{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/include -arch {{.ARCH}} -pipe -no-cpp-precomp -isysroot $SDKROOT -m{{.PLATFORM_VERSION_MIN}} -O2 -Wno-deprecated-register"
+        export LDFLAGS="-L$SDKROOT/usr/lib -L{{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}"
+        export PKG_CONFIG_PATH={{.PNG_SRC}}/{{.ARCH_NAME}}/:{{.JPEG_SRC}}/{{.ARCH_NAME}}/:{{.TIFF_SRC}}/{{.ARCH_NAME}}/
+        export CXX="{{.TARGET_CXX}} --target={{.ARCH_NAME}}"
+        export CXX_FOR_BUILD="{{.TARGET_CXX_FOR_BUILD}} --target={{.ARCH_NAME}}"
+        export CC="{{.TARGET_CC}} --target={{.ARCH_NAME}}"
+        mkdir -p {{.LEPTONICA_SRC}}/{{.ARCH_NAME}}
+        cd {{.LEPTONICA_SRC}}/{{.ARCH_NAME}}
+        ../configure --host={{.HOST}} --prefix=`pwd` --enable-shared=no --disable-programs --with-zlib --with-libpng --with-jpeg --with-libtiff --without-giflib --without-libwebp --without-libwebpmux --without-libopenjpeg
+    status:
+      - test -f {{.LEPTONICA_SRC}}/{{.ARCH_NAME}}/Makefile
+
+  autogen-liblept:
+    deps: [download-liblept]
+    cmds:
+      - |
+        cd {{.LEPTONICA_SRC}}
+        ./autogen.sh 2> /dev/null
+    status:
+      - test -f {{.LEPTONICA_CONFIG}}
+
+  download-liblept:
+    cmds:
+      - curl http://leptonica.org/source/{{.LEPTONICA_NAME}}.tar.gz | tar -xpf-
+    status:
+      - test -d {{.LEPTONICA_SRC}}
+
+  install-libpng:
+    cmds:
+      - task: compile-libpng
+        vars:
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          ARCH: "{{.ARCH}}"
+          SDK: "{{.SDK}}"
+          HOST: "{{.HOST}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+      - mkdir -p {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}
+      - mkdir -p {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/include
+      - cp {{.PNG_SRC}}/{{.ARCH_NAME}}/lib/{{.PNG_ARCHIVE}} {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}
+      - cp -rvf {{.PNG_SRC}}/{{.ARCH_NAME}}/include/libpng16/*.h {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/include
+    status:
+      - test -f {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}/{{.PNG_ARCHIVE}}
+
+  compile-libpng:
+    cmds:
+      - task: configure-libpng
+        vars:
+          SDK: "{{.SDK}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          ARCH: "{{.ARCH}}"
+          HOST: "{{.HOST}}"
+      - |
+        cd {{.PNG_SRC}}/{{.ARCH_NAME}}
+        make -sj8
+        make install
+    status:
+      - test -f {{.PNG_SRC}}/{{.ARCH_NAME}}/lib/{{.PNG_ARCHIVE}}
+
+  configure-libpng:
+    deps: [download-libpng]
+    cmds:
+      - |
+        export SDKROOT={{.SDK}}
+        export CFLAGS="-arch {{.ARCH}} -pipe -no-cpp-precomp -isysroot $SDKROOT -m{{.PLATFORM_VERSION_MIN}} -O2 -fembed-bitcode"
+        export CPPFLAGS=$CFLAGS
+        export CXXFLAGS="$CFLAGS -Wno-deprecated-register"
+        export LDFLAGS="-L$SDKROOT/usr/lib"
+        mkdir -p {{.PNG_SRC}}/{{.ARCH_NAME}}
+        cd {{.PNG_SRC}}/{{.ARCH_NAME}}
+        ../configure CXX="{{.TARGET_CXX}} --target={{.ARCH_NAME}}" CC="{{.TARGET_CC}} --target={{.ARCH_NAME}}" --host={{.HOST}} --enable-shared=no --prefix=`pwd`
+    status:
+      - test -f {{.PNG_SRC}}/{{.ARCH_NAME}}/Makefile
+
+  download-libpng:
+    cmds:
+      - curl -L https://downloads.sourceforge.net/project/libpng/libpng16/{{.PNG_VERSION}}/{{.PNG_NAME}}.tar.gz | tar -xpf-
+    status:
+      - test -d {{.PNG_SRC}}
+
+  install-libjpeg:
+    cmds:
+      - task: compile-libjpeg
+        vars:
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          ARCH: "{{.ARCH}}"
+          SDK: "{{.SDK}}"
+          HOST: "{{.HOST}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+      - mkdir -p {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}
+      - mkdir -p {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/include
+      - cp {{.JPEG_SRC}}/{{.ARCH_NAME}}/lib/{{.JPEG_ARCHIVE}} {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}
+      - cp -rvf {{.JPEG_SRC}}/{{.ARCH_NAME}}/include/*.h {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/include
+    status:
+      - test -f {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}/{{.JPEG_ARCHIVE}}
+
+  compile-libjpeg:
+    cmds:
+      - task: configure-libjpeg
+        vars:
+          SDK: "{{.SDK}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          ARCH: "{{.ARCH}}"
+          HOST: "{{.HOST}}"
+      - |
+        cd {{.JPEG_SRC}}/{{.ARCH_NAME}}
+        make -sj8
+        make install
+    status:
+      - test -f {{.JPEG_SRC}}/{{.ARCH_NAME}}/lib/{{.JPEG_ARCHIVE}}
+
+  configure-libjpeg:
+    deps: [download-libjpeg]
+    cmds:
+      - |
+        export SDKROOT={{.SDK}}
+        export CFLAGS="-arch {{.ARCH}} -pipe -no-cpp-precomp -isysroot $SDKROOT -m{{.PLATFORM_VERSION_MIN}} -O2 -fembed-bitcode"
+        export CPPFLAGS=$CFLAGS
+        export CXXFLAGS="$CFLAGS -Wno-deprecated-register"
+        export LDFLAGS="-L$SDKROOT/usr/lib"
+        mkdir -p {{.JPEG_SRC}}/{{.ARCH_NAME}}
+        cd {{.JPEG_SRC}}/{{.ARCH_NAME}}
+        ../configure CXX="{{.TARGET_CXX}} --target={{.ARCH_NAME}}" CC="{{.TARGET_CC}} --target={{.ARCH_NAME}}" --host={{.HOST}} --enable-shared=no --prefix=`pwd`
+    status:
+      - test -f {{.JPEG_SRC}}/{{.ARCH_NAME}}/Makefile
+
+  download-libjpeg:
+    cmds:
+      - curl http://www.ijg.org/files/{{.JPEG_SRC_NAME}}.tar.gz | tar -xpf-
+    status:
+      - test -d {{.JPEG_SRC}}
+
+  install-libtiff:
+    cmds:
+      - task: compile-libtiff
+        vars:
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          ARCH: "{{.ARCH}}"
+          SDK: "{{.SDK}}"
+          HOST: "{{.HOST}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+      - mkdir -p {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}
+      - mkdir -p {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/include
+      - cp {{.TIFF_SRC}}/{{.ARCH_NAME}}/lib/{{.TIFF_ARCHIVE}} {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}
+      - cp -rvf {{.TIFF_SRC}}/{{.ARCH_NAME}}/include/*.h {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/include
+    status:
+      - test -f {{.SRC_DIR}}/{{.PLATFORM_PREFIX}}/{{.ARCH_NAME}}/{{.TIFF_ARCHIVE}}
+
+  compile-libtiff:
+    cmds:
+      - task: configure-libtiff
+        vars:
+          SDK: "{{.SDK}}"
+          PLATFORM_VERSION_MIN: "{{.PLATFORM_VERSION_MIN}}"
+          ARCH_NAME: "{{.ARCH_NAME}}"
+          ARCH: "{{.ARCH}}"
+          HOST: "{{.HOST}}"
+      - |
+        cd {{.TIFF_SRC}}/{{.ARCH_NAME}}
+        make -sj8
+        make install
+    status:
+      - test -f {{.TIFF_SRC}}/{{.ARCH_NAME}}/lib/{{.TIFF_ARCHIVE}}
+
+  configure-libtiff:
+    deps: 
+      - task: download-libtiff
+    cmds:
+      - |
+        export SDKROOT={{.SDK}}
+        export CFLAGS="-arch {{.ARCH}} -pipe -no-cpp-precomp -isysroot $SDKROOT -m{{.PLATFORM_VERSION_MIN}} -O2 -fembed-bitcode"
+        export CPPFLAGS=$CFLAGS
+        export CXXFLAGS="$CFLAGS -Wno-deprecated-register"
+        export LDFLAGS="-L$SDKROOT/usr/lib"
+        mkdir -p {{.TIFF_SRC}}/{{.ARCH_NAME}}
+        cd {{.TIFF_SRC}}/{{.ARCH_NAME}}
+        ../configure CXX="{{.TARGET_CXX}} --target={{.ARCH_NAME}}" CC="{{.TARGET_CC}} --target={{.ARCH_NAME}}" --host={{.HOST}} --enable-fast-install --enable-shared=no --prefix=`pwd` --without-x --with-jpeg-include-dir={{.JPEG_SRC}}/{{.ARCH_NAME}}/include --with-jpeg-lib-dir={{.JPEG_SRC}}/{{.ARCH_NAME}}/lib
+    status:
+      - test -f {{.TIFF_SRC}}/{{.ARCH_NAME}}/Makefile
+
+  download-libtiff:
+    cmds:
+      - curl http://download.osgeo.org/libtiff/{{.TIFF_NAME}}.tar.gz | tar -xpf-
+    status:
+      - test -d {{.TIFF_SRC}}

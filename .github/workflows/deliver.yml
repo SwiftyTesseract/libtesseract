@@ -31,8 +31,8 @@ jobs:
       - name: Create draft release
         uses: ncipollo/release-action@v1
         with:
-          artifact: "libtesseract-${{env.RELEASE_VERSION}}.xcframework.zip"
+          artifact: "libtesseract-${{ env.RELEASE_VERSION }}.xcframework.zip"
           draft: true
           allowUpdates: true
-          tag: ${{env.RELEASE_VERSION}}
+          tag: ${{ env.RELEASE_VERSION }}
           token: ${{ secrets.GITHUB_TOKEN }}

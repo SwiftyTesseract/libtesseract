@@ -114,7 +114,7 @@ tasks:
   build-tesseract-xcframework-zip:
     cmds:
       - task: build-tesseract-xcframework
-      - zip -r {{.SRC_DIR}}/libtesseract-{{.RELEASE_VERSION}}.xcframework.zip {{.SRC_DIR}}/build/libtesseract.xcframework
+      - zip -r libtesseract-{{.RELEASE_VERSION}}.xcframework.zip libtesseract.xcframework
 
   build-tesseract-xcframework:
     cmds:
@@ -134,9 +134,9 @@ tasks:
           -framework {{.IOS_SIMULATOR_FRAMEWORK}} \
           -framework {{.MACOS_FRAMEWORK}} \
           -framework {{.CATALYST_FRAMEWORK}} \
-          -output {{.SRC_DIR}}/build/libtesseract.xcframework
+          -output {{.SRC_DIR}}/libtesseract.xcframework
     status:
-      - test -f {{.SRC_DIR}}/build/libtesseract.xcframework
+      - test -f {{.SRC_DIR}}/libtesseract.xcframework
 
   build-tesseract-catalyst-framework:
     cmds:

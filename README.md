@@ -25,7 +25,7 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/SwiftyTesseract/libtesseract.git", from: "0.1.0")
+    .package(url: "https://github.com/SwiftyTesseract/libtesseract.git", from: "0.2.0")
   ],
   targets: [
     .target(
@@ -62,9 +62,11 @@ In a Swift Package Manager project, this can be achieved by adding the following
 See SwiftyTesseract's [Additonal Configuration](https://github.com/SwiftyTesseract/SwiftyTesseract#additional-configuration) notes on considerations for including language training data files.
 
 ## Build dependencies
-If you want to build libtesseract from source, you need `automake` and `pkg-config` installed on your machine. These can be installed via homebrew:
+If you want to build libtesseract from source, you need `automake`, `pkg-config`, and `task` installed on your machine. These can be installed via homebrew:
 
-`brew install automake pkg-config`
+`brew install automake pkg-config go-task/tap/go-task`
+
+To build a library for distribution run `task build-tesseract-xcframework-zip`
 
 ## Attributions
 libtesseract disributes the following dependencies in binary form:

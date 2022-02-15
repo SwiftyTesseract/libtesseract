@@ -4,31 +4,31 @@ vars:
   SRC_DIR:
     sh: pwd
   
-  PNG_VERSION: 1.6.36
+  PNG_VERSION: 1.6.37
   PNG_NAME: libpng-{{.PNG_VERSION}}
   PNG_SRC: "{{.SRC_DIR}}/{{.PNG_NAME}}"
   PNG_ARCHIVE: libpng.a
   PNG_CONFIG: "{{.PNG_SRC}}/configure"
 
-  JPEG_SRC_NAME: jpegsrc.v9c
-  JPEG_DIR_NAME: jpeg-9c # folder name after the JPEG_SRC_NAME archive has been unpacked
+  JPEG_SRC_NAME: jpegsrc.v9e
+  JPEG_DIR_NAME: jpeg-9e # folder name after the JPEG_SRC_NAME archive has been unpacked
   JPEG_SRC:  "{{.SRC_DIR}}/{{.JPEG_DIR_NAME}}"
   JPEG_ARCHIVE: libjpeg.a
   JPEG_CONFIG: "{{.JPEG_SRC}}/configure"
 
-  TIFF_NAME: tiff-4.0.10
+  TIFF_NAME: tiff-4.3.0
   TIFF_SRC:  "{{.SRC_DIR}}/{{.TIFF_NAME}}"
   TIFF_ARCHIVE: libtiff.a
   TIFF_CONFIG: "{{.TIFF_SRC}}/configure"
 
-  TESSERACT_VERSION: 4.1.0
+  TESSERACT_VERSION: 4.1.3
   TESSERACT_NAME: tesseract-{{.TESSERACT_VERSION}}
   TESSERACT_SRC: "{{.SRC_DIR}}/{{.TESSERACT_NAME}}"
   TESSERACT_ARCHIVE: libtesseract.a
   TESSERACT_AUTOGEN: "{{.TESSERACT_SRC}}/autogen.sh"
   TESSERACT_CONFIG: "{{.TESSERACT_SRC}}/configure"
 
-  LEPTONICA_VERSION: 1.79.0
+  LEPTONICA_VERSION: 1.82.0
   LEPTONICA_NAME: leptonica-{{.LEPTONICA_VERSION}}
   LEPTONICA_SRC:  "{{.SRC_DIR}}/{{.LEPTONICA_NAME}}"
   LEPTONICA_ARCHIVE: liblept.a
@@ -111,10 +111,31 @@ tasks:
       - task: clean-artifacts
       - rm -rf {{.PNG_SRC}} {{.TIFF_SRC}} {{.JPEG_SRC}} {{.LEPTONICA_SRC}} {{.TESSERACT_SRC}}
 
+  build-tesseract-ios-xcframework-zip:
+    cmds:
+      - task: build-tesseract-ios-xcframework
+      - zip -r libtesseract-ios-{{.TESSERACT_VERSION}}.xcframework.zip libtesseract.xcframework
+
   build-tesseract-xcframework-zip:
     cmds:
       - task: build-tesseract-xcframework
-      - zip -r libtesseract-{{.RELEASE_VERSION}}.xcframework.zip libtesseract.xcframework
+      - zip -r libtesseract-{{.TESSERACT_VERSION}}.xcframework.zip libtesseract.xcframework
+
+  build-tesseract-ios-xcframework:
+      cmds:
+        - task: clean-build-folder
+        - task: clean-sources
+        - task: build-tesseract-ios-simulator-framework
+        - task: clean-sources
+        - task: build-tesseract-ios-framework
+        - task: clean-sources
+        - |
+          xcodebuild -create-xcframework \
+            -framework {{.IOS_FRAMEWORK}} \
+            -framework {{.IOS_SIMULATOR_FRAMEWORK}} \
+            -output {{.SRC_DIR}}/libtesseract.xcframework
+      status:
+        - test -f {{.SRC_DIR}}/libtesseract.xcframework
 
   build-tesseract-xcframework:
     cmds:
@@ -372,7 +393,7 @@ tasks:
         mkdir -p {{.TESSERACT_SRC}}/{{.ARCH_NAME}}
         cd {{.TESSERACT_SRC}}/{{.ARCH_NAME}}
         ln -s {{.LEPTONICA_SRC}}/src/ leptonica
-        ../configure --host={{.HOST}} --prefix=`pwd` --enable-shared=no --disable-graphics
+        ../configure --host={{.HOST}} --prefix=`pwd` --enable-shared=no --disable-graphics --disable-legacy --without-curl
     status:
       - test -f {{.TESSERACT_SRC}}/{{.ARCH_NAME}}/Makefile
 
@@ -381,6 +402,7 @@ tasks:
     cmds:
       - |
         cd {{.TESSERACT_SRC}}
+        patch configure.ac ../patch/optional_libcurl.patch
         ./autogen.sh 2> /dev/null
     status:
       - test -f {{.TESSERACT_CONFIG}}

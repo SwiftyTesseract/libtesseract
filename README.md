@@ -1,4 +1,9 @@
 # libtesseract
+## This library is no longer maintained and will see no further updates.
+If you need OCR support in your application, I suggest you use the first party option by using the [Text Recognition](https://developer.apple.com/documentation/vision/recognizing_text_in_images)
+capabilities of Apple's Vision framework. If your language is not supported by Apple, I suggest you fork this project and maintain it yourself. If you need assistance migrating to another solution
+or in maintaining your own fork, you or your company can reach out to me to arrange a contract agreement.
+
 ![Swift Tools Version Badge](https://img.shields.io/badge/swift%20tools%20version-5.3-blue.svg) ![ios platform badge](https://img.shields.io/badge/iOS-11.0%20%2B-orange.svg) ![catalyst platform badge](https://img.shields.io/badge/macOS%20%28catalyst%29-10.15%20%2B-purple.svg) ![macOS platform badge](https://img.shields.io/badge/macOS-10.13%20%2B-red.svg) ![Build](https://github.com/SwiftyTesseract/libtesseract/workflows/Build/badge.svg)
 
 This repo contains build scripts to compile [Tesseract](https://github.com/tesseract-ocr/tesseract) and it's dependencies for Apple platforms to be distributed as a Swift package. It's primary goal is to aid in migrating [SwiftyTesseract](https://github.com/SwiftyTesseract/SwiftyTesseract) to be consumable as a Swift Package Manager dependency. If you're looking for looking for a quick way to get started with using Tesseract in your Apple platform application without the rough edges of memory management and dealing with C interop, then you should start with SwiftyTesseract.
